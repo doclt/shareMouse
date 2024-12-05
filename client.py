@@ -3,6 +3,9 @@ import pickle
 from pynput import mouse, keyboard
 import threading
 import time
+import subprocess
+import sys
+import platform
 
 class MouseKeyboardClient:
     def __init__(self, host='localhost', port=5001):
@@ -13,13 +16,42 @@ class MouseKeyboardClient:
         self.screen_width = 1920  # Default value, should be adjusted
         self.screen_height = 1080  # Default value, should be adjusted
 
+    def test_connectivity(self):
+        """Test connectivity using system ping command"""
+        try:
+            # Use the appropriate ping command based on the OS
+            param = '-n' if platform.system().lower() == 'windows' else '-c'
+            command = ['ping', param, '1', self.host]
+            
+            print(f"Testing connectivity to {self.host} using system ping...")
+            result = subprocess.run(command, 
+                                 stdout=subprocess.PIPE, 
+                                 stderr=subprocess.PIPE,
+                                 text=True)
+            
+            if result.returncode == 0:
+                print("System ping successful!")
+                return True
+            else:
+                print("System ping failed!")
+                print(result.stdout)
+                return False
+        except Exception as e:
+            print(f"Error during ping test: {e}")
+            return False
+
     def connect(self):
         try:
             print(f"Attempting to connect to {self.host}:{self.port}...")
             
+            # First test connectivity using system ping
+            if not self.test_connectivity():
+                print("Warning: System ping failed, but attempting socket connection anyway...")
+            
             # Try to resolve the hostname first
             try:
-                socket.gethostbyname(self.host)
+                resolved_ip = socket.gethostbyname(self.host)
+                print(f"Resolved {self.host} to IP: {resolved_ip}")
             except socket.gaierror:
                 print(f"Error: Could not resolve hostname '{self.host}'")
                 print("Tips: ")
