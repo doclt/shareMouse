@@ -15,12 +15,53 @@ class MouseKeyboardClient:
 
     def connect(self):
         try:
+            print(f"Attempting to connect to {self.host}:{self.port}...")
+            
+            # Try to resolve the hostname first
+            try:
+                socket.gethostbyname(self.host)
+            except socket.gaierror:
+                print(f"Error: Could not resolve hostname '{self.host}'")
+                print("Tips: ")
+                print("1. Make sure you're using the correct IP address")
+                print("2. If using hostname, ensure it can be resolved")
+                return False
+                
+            # Try to connect with a timeout
+            self.client_socket.settimeout(5)  # 5 second timeout
             self.client_socket.connect((self.host, self.port))
+            self.client_socket.settimeout(None)  # Reset timeout
             self.is_active = True
-            print(f"Connected to server at {self.host}:{self.port}")
+            print(f"Successfully connected to server at {self.host}:{self.port}")
             return True
+            
+        except socket.timeout:
+            print(f"Connection timed out when trying to connect to {self.host}:{self.port}")
+            print("Tips:")
+            print("1. Verify the server is running")
+            print("2. Check if a firewall is blocking the connection")
+            print("3. Ensure both computers are on the same network")
+            return False
+        except ConnectionRefusedError:
+            print(f"Connection refused by {self.host}:{self.port}")
+            print("Tips:")
+            print("1. Make sure the server is running")
+            print("2. Verify the correct port number is being used")
+            print("3. Check if any firewall is blocking incoming connections on the server")
+            return False
+        except OSError as e:
+            if "No route to host" in str(e):
+                print(f"No route to host {self.host}:{self.port}")
+                print("Tips:")
+                print("1. Verify both computers are on the same network")
+                print("2. Try pinging the server IP address")
+                print("3. Check network settings and firewalls")
+                print("4. Ensure the IP address is correct")
+            else:
+                print(f"Connection error: {e}")
+            return False
         except Exception as e:
-            print(f"Failed to connect: {e}")
+            print(f"Unexpected error while connecting: {e}")
             return False
 
     def send_event(self, event):
