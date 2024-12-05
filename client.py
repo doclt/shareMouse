@@ -6,6 +6,8 @@ import time
 import subprocess
 import sys
 import platform
+import os
+import netifaces
 
 class MouseKeyboardClient:
     def __init__(self, host='localhost', port=5001):
@@ -16,26 +18,66 @@ class MouseKeyboardClient:
         self.screen_width = 1920  # Default value, should be adjusted
         self.screen_height = 1080  # Default value, should be adjusted
 
+    def print_network_info(self):
+        """Print detailed network interface information"""
+        print("\n=== Network Interface Information ===")
+        try:
+            interfaces = netifaces.interfaces()
+            for interface in interfaces:
+                print(f"\nInterface: {interface}")
+                try:
+                    addrs = netifaces.ifaddresses(interface)
+                    if netifaces.AF_INET in addrs:
+                        for addr in addrs[netifaces.AF_INET]:
+                            print(f"  IP Address: {addr['addr']}")
+                            if 'netmask' in addr:
+                                print(f"  Netmask: {addr['netmask']}")
+                except Exception as e:
+                    print(f"  Error getting address info: {e}")
+        except Exception as e:
+            print(f"Error getting network interfaces: {e}")
+
     def test_connectivity(self):
         """Test connectivity using system ping command"""
         try:
-            # Use the appropriate ping command based on the OS
+            # Print network information first
+            self.print_network_info()
+            
+            print(f"\n=== Testing connectivity to {self.host} ===")
+            
+            # Try regular ping first
             param = '-n' if platform.system().lower() == 'windows' else '-c'
             command = ['ping', param, '1', self.host]
             
-            print(f"Testing connectivity to {self.host} using system ping...")
+            print(f"Testing with regular ping...")
             result = subprocess.run(command, 
                                  stdout=subprocess.PIPE, 
                                  stderr=subprocess.PIPE,
                                  text=True)
             
+            print(result.stdout)
+            
             if result.returncode == 0:
-                print("System ping successful!")
+                print("Regular ping successful!")
                 return True
-            else:
-                print("System ping failed!")
+            
+            # If regular ping failed and we're on Unix-like system, try with sudo
+            if platform.system() != 'Windows':
+                print("\nTrying with sudo ping...")
+                command = ['sudo', 'ping', param, '1', self.host]
+                result = subprocess.run(command, 
+                                     stdout=subprocess.PIPE, 
+                                     stderr=subprocess.PIPE,
+                                     text=True)
                 print(result.stdout)
-                return False
+                
+                if result.returncode == 0:
+                    print("Sudo ping successful!")
+                    return True
+                    
+            print("All ping attempts failed!")
+            return False
+            
         except Exception as e:
             print(f"Error during ping test: {e}")
             return False

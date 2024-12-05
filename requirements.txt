@@ -1,2 +1,3 @@
 pynput==1.7.6
 python-xlib==0.33
+netifaces==0.11.0
