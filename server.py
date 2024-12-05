@@ -2,18 +2,39 @@ import socket
 import pickle
 from pynput import mouse, keyboard
 import threading
+import netifaces
+import os
 
 class MouseKeyboardServer:
-    def __init__(self, host='0.0.0.0', port=5001):
+    def __init__(self, host='0.0.0.0', port=8001):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Add socket option to allow port reuse
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
+        # Print network interfaces for debugging
+        print("\n=== Available Network Interfaces ===")
+        for interface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET in addrs:
+                for addr in addrs[netifaces.AF_INET]:
+                    print(f"Interface {interface}: {addr['addr']}")
+        
         try:
+            # Try to bind with specific interface if provided
             self.server_socket.bind((host, port))
             self.server_socket.listen(1)
             self.mouse_controller = mouse.Controller()
             self.keyboard_controller = keyboard.Controller()
-            print(f"Server listening on {host}:{port}")
+            print(f"\nServer successfully bound to {host}:{port}")
+            
+            # Get the actual bound address
+            bound_addr = self.server_socket.getsockname()
+            print(f"Server is listening on {bound_addr[0]}:{bound_addr[1]}")
+            
+            # Try to detect if we're running with sudo/root
+            is_root = os.geteuid() == 0 if hasattr(os, 'geteuid') else False
+            print(f"Running with root privileges: {is_root}")
+            
         except PermissionError:
             print("Error: Permission denied. Try running with sudo or use a port number above 1024")
             raise
@@ -70,7 +91,7 @@ class MouseKeyboardServer:
 
 if __name__ == '__main__':
     import sys
-    port = 5001
+    port = 8001
     if len(sys.argv) > 1:
         try:
             port = int(sys.argv[1])

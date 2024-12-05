@@ -10,7 +10,7 @@ import os
 import netifaces
 
 class MouseKeyboardClient:
-    def __init__(self, host='localhost', port=5001):
+    def __init__(self, host='localhost', port=8001):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host = host
         self.port = port
