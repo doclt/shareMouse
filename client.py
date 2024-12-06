@@ -198,7 +198,14 @@ class MouseKeyboardClient:
         if not self.connect():
             return
 
-        # Start mouse listener
+        # Get actual screen resolution
+        with mouse.Controller() as mouse_controller:
+            screen_info = mouse_controller._display.screen()
+            self.screen_width = screen_info.width_px
+            self.screen_height = screen_info.height_px
+            print(f"Screen resolution: {self.screen_width}x{self.screen_height}")
+
+        # Start mouse listener with proper movement tracking
         mouse_listener = mouse.Listener(
             on_move=self.on_mouse_move,
             on_click=self.on_mouse_click,
@@ -213,13 +220,15 @@ class MouseKeyboardClient:
         )
         keyboard_listener.start()
 
-        # Keep the main thread running
+        # Keep the main thread alive
         try:
-            while self.is_active:
-                time.sleep(1)
+            while True:
+                time.sleep(0.1)
         except KeyboardInterrupt:
-            print("Stopping client...")
-        finally:
+            print("\nStopping client...")
+            self.is_active = False
+            mouse_listener.stop()
+            keyboard_listener.stop()
             self.client_socket.close()
 
 if __name__ == '__main__':
